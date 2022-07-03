@@ -15,11 +15,14 @@ exports.signup = async (req, res) => {
     }
     db.query(
         `
-            INSERT INTO users (lastname, firstname, email, password )SELECT ?,?, ?, ? WHERE NOT EXISTS (SELECT * FROM users WHERE email = ?);
+            INSERT INTO users (lastname, firstname, email, password )SELECT ?,?, ?, ?;
             `,
         [lastname, firstname, email, cryptPassword, email],
         (error, results) => {
             if (error) {
+                if (error.errno === 1062) {
+                    return res.status(500).json({ error: "Email déjà utilisé" });
+                }
                 return res.status(500).json({ error: "Votre requête n'a pas pu aboutir" });
             } else {
                 // Vérification de la création de la ligne
@@ -34,42 +37,42 @@ exports.signup = async (req, res) => {
 };
 
 exports.login = (req, res) => {
-        const email = req.body.email;
-        const password = req.body.password;
+    const email = req.body.email;
+    const password = req.body.password;
 
-        if (!email || !password) {
-            return res.status(400).json({ error: "Please enter an email and a password" });
-        } else {
-            db.query(
-                `
+    if (!email || !password) {
+        return res.status(400).json({ error: "Please enter an email and a password" });
+    } else {
+        db.query(
+            `
                 SELECT 
                     * 
                 FROM users 
                 WHERE email = ?`,
-                [email],
-                async (error, result) => {
-                    if (error) {
-                        return res.status(500).json({ error: "Votre requête n'a pas pu aboutir" });
-                    }
-                    if (!result[0]) {
-                        return res.status(403).json({ error: "Email not recognized" });
+            [email],
+            async (error, result) => {
+                if (error) {
+                    return res.status(500).json({ error: "Votre requête n'a pas pu aboutir" });
+                }
+                if (!result[0]) {
+                    return res.status(403).json({ error: "Email not recognized" });
+                } else {
+                    const userValid = await bcrypt.compare(password, result[0].password);
+                    if (userValid) {
+                        const token = await jwt.createToken({ sub: result[0].users_id });
+                        res.status(200).json({
+                            userId: result[0].users_id,
+                            access_token: token,
+                            token_type: "Bearer",
+                            expires_in: jwtConfig.ttl,
+                        });
                     } else {
-                        const userValid = await bcrypt.compare(password, result[0].password);
-                        if (userValid) {
-                            const token = await jwt.createToken({ sub: result[0].users_id });
-                            res.status(200).json({
-                                userId: result[0].users_id,
-                                access_token: token,
-                                token_type: "Bearer",
-                                expires_in: jwtConfig.ttl,
-                            });
-                        } else {
-                            return res.status(401).json({ error: "Incorrect password" });
-                        }
+                        return res.status(401).json({ error: "Incorrect password" });
                     }
                 }
-            );
-        }
+            }
+        );
+    }
 };
 
 exports.logout = async (req, res) => {
