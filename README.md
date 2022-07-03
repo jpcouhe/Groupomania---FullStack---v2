@@ -24,6 +24,7 @@ Project 7 of the OC formation | Build a social network
     - Dark mode
     - Posts are filterable by category
     - Scroll Infinite for posts and pagination system for comments
+    - External image storage (On AWS)
  
 
 ## API
