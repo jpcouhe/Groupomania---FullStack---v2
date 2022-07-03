@@ -1,6 +1,8 @@
 const multer = require("multer");
+const multerS3 = require("multer-s3");
 const uuid = require("uuid");
-// recupere la data qui est sous forme de multipart/form-data
+
+const { s3 } = require("../config/aws-config");
 
 const MIME_TYPES = {
     "image/jpg": "jpg",
@@ -9,24 +11,24 @@ const MIME_TYPES = {
     "image/gif": "gif",
 };
 
-const storage = multer.diskStorage({
-    destination: (req, file, callback) => {
-        if (req.baseUrl == "/api/user") {
-            callback(null, "images/profil_picture");
-        } else if (req.baseUrl == "/api/post") {
-            callback(null, "images/post_picture");
-        } else {
-            callback(null, "images/comment_picture");
-        }
-    },
-    filename: (req, file, callback) => {
-        const extension = MIME_TYPES[file.mimetype];
-        callback(null, uuid.v4() + "." + extension);
-    },
-});
-
 const upload = multer({
-    storage: storage,
+    storage: multerS3({
+        s3: s3,
+        bucket: process.env.AWS_BUCKET_NAME,
+        metadata: function (req, file, cb) {
+            cb(null, { fieldName: file.fieldname });
+        },
+        key: function (req, file, cb) {
+            const extension = MIME_TYPES[file.mimetype];
+            if (req.baseUrl == "/api/user") {
+                cb(null, "profil_picture/" + uuid.v4() + "." + extension);
+            } else if (req.baseUrl == "/api/post") {
+                cb(null, "post_picture/" + uuid.v4() + "." + extension);
+            } else {
+                cb(null, "comment_picture/" + uuid.v4() + "." + extension);
+            }
+        },
+    }),
     fileFilter: (req, file, callback) => {
         if (MIME_TYPES.hasOwnProperty(file.mimetype)) {
             callback(null, true);

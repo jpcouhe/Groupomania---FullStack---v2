@@ -80,12 +80,7 @@ exports.updateProfilUser = (req, res) => {
 
                 if (req.file) {
                     data = {
-                        profile_picture_location:
-                            req.protocol +
-                            "://" +
-                            req.get("host") +
-                            "/images/profil_picture/" +
-                            req.file.filename,
+                        profile_picture_location: req.file.location,
                         firstname: firstname,
                         lastname: lastname,
                     };

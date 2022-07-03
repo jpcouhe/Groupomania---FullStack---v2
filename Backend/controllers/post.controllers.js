@@ -28,13 +28,7 @@ exports.createPost = (req, res) => {
             } else {
                 if (req.file) {
                     data = {
-                        content:
-                            req.protocol +
-                            "://" +
-                            req.get("host") +
-                            "/images/post_picture/" +
-                            req.file.filename,
-                        // récupére le précédant ID
+                        content: req.file.location,
                         threads_id: results.insertId,
                         users_id: req.auth,
                         postTypes_id: 1,
